@@ -22,7 +22,7 @@ from telegram.ext import (
 # CONFIG
 # =========================
 
-BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"
+BOT_TOKEN = os.environ["BOT_TOKEN"]
 DATA_FILE = "bot_data.json"
 TZ = ZoneInfo("Europe/Paris")
 
