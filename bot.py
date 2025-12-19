@@ -485,7 +485,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # MAIN
 # =========================
 
-async def main():
+def main():
     load_data()
 
     app = ApplicationBuilder().token(BOT_TOKEN).build()
@@ -515,18 +515,20 @@ async def main():
         )
     )
 
-    # Job quotidien à 09:00
-    if app.job_queue:
-        app.job_queue.run_daily(
-            daily_reminder,
-            time=dtime(hour=9, minute=0, tz=TZ),
-        )
-    else:
-        print("⚠ JobQueue non disponible, les rappels quotidiens sont désactivés.")
+    # 🔕 On désactive les rappels quotidiens pour l'instant
+    # (sinon ça demande une config JobQueue spécifique)
+    # Si tu veux les remettre plus tard, on réactivera ce bloc avec une JobQueue correctement initialisée.
+    # from telegram.ext import JobQueue
+    # app.job_queue = JobQueue()
+    # app.job_queue.set_application(app)
+    # app.job_queue.run_daily(
+    #     daily_reminder,
+    #     time=dtime(hour=9, minute=0, tz=TZ),
+    # )
+
     print("Bot started.")
-    await app.run_polling()
+    app.run_polling()
 
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    main()
