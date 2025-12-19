@@ -516,11 +516,13 @@ async def main():
     )
 
     # Job quotidien à 09:00
-    app.job_queue.run_daily(
-        daily_reminder,
-        time=dtime(hour=9, minute=0, tz=TZ),
-    )
-
+    if app.job_queue:
+        app.job_queue.run_daily(
+            daily_reminder,
+            time=dtime(hour=9, minute=0, tz=TZ),
+        )
+    else:
+        print("⚠ JobQueue non disponible, les rappels quotidiens sont désactivés.")
     print("Bot started.")
     await app.run_polling()
 
