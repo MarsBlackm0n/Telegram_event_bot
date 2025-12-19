@@ -313,14 +313,14 @@ async def add_bday(update: Update, context: ContextTypes.DEFAULT_TYPE):
     parts = [p for p in clean.split("-") if p]
 
     if len(parts) != 2:
-        await update.message.reply_text("Format de date invalide. Utilise JJ-MM (ex: 25-03).")
+        await update.message.reply_text("Format de date chelou (debug 123). Utilise JJ-MM (ex: 25-03).")
         return
 
     try:
         day = int(parts[0])
         month = int(parts[1])
     except ValueError:
-        await update.message.reply_text("Format de date invalide. Utilise JJ-MM (ex: 25-03).")
+        await update.message.reply_text("Format de date chelou (debug 123). Utilise JJ-MM (ex: 25-03).")
         return
 
     if pseudo.startswith("@"):
