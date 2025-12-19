@@ -281,57 +281,108 @@ async def drunk_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ANNIVERSAIRES & EVENTS
 # =========================
 
-def add_event_record(chat_id, type_, username, title, day, month, year=None):
+def add_event_record(chat_id, type_, username, title, day, month, year=None, user_id=None, display=None):
     DATA["events"].append(
         {
             "chat_id": chat_id,
-            "type": type_,
-            "username": username,
+            "type": type_,          # "birthday" / "event"
+            "username": username,   # ancien champ (ex: @pseudo ou nom libre)
             "title": title,
             "day": day,
             "month": month,
             "year": year,
+            "user_id": user_id,     # NEW : id Telegram si on l'a (pour anniv / events liés à un user)
+            "display": display or username,  # NEW : nom à afficher
         }
     )
     save_data()
 
 
+
 async def add_bday(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Formats acceptés :
+    - /add_bday Satya IV le baiseur 15-02
+    - /add_bday @satya 15-02
+    - /add_bday Satya 15/02
+    - /add_bday (en cliquant sur le nom) Satya 15-02
+    """
     if len(context.args) < 2:
-        await update.message.reply_text("Usage : /add_bday @pseudo 15-02")
+        await update.message.reply_text("Usage : /add_bday Nom 15-02")
         return
 
-    # Récupération fiable du @mention
-    username = None
-    if update.message.entities:
-        for ent in update.message.entities:
-            if ent.type == "mention":
-                username = update.message.text[ent.offset+1 : ent.offset+ent.length]
+    msg = update.message
 
-    if not username:
-        await update.message.reply_text("Tagge la personne avec @ (ex: /add_bday @Nom 15-02)")
-        return
-
-    # Dernier argument = date brute
+    # 1) Dernier argument = date brute
     date_raw = context.args[-1]
 
+    # Normalisation de la date (15-02, 15/02, 15.02 → 15-02)
     clean = re.sub(r"[^\d]", "-", date_raw)
     parts = [p for p in clean.split("-") if p]
-
     if len(parts) != 2:
         await update.message.reply_text("Format de date invalide. Utilise JJ-MM (ex: 25-03).")
         return
 
-    day = int(parts[0])
-    month = int(parts[1])
+    try:
+        day = int(parts[0])
+        month = int(parts[1])
+    except ValueError:
+        await update.message.reply_text("Format de date invalide. Utilise JJ-MM (ex: 25-03).")
+        return
+
+    # 2) Pseudo “texte libre” = tout sauf la date
+    raw_pseudo = " ".join(context.args[:-1]).strip()
+
+    user_id = None
+    username = None   # @pseudo si dispo
+    display = None    # nom à afficher dans les listes
+
+    # 3) On regarde les entités Telegram pour détecter vraie mention
+    if msg.entities:
+        for ent in msg.entities:
+            if ent.type == "bot_command":
+                continue
+
+            # Cas 1 : vraie mention @username
+            if ent.type == "mention":
+                raw = msg.text[ent.offset: ent.offset + ent.length]  # ex: "@jordan"
+                username = raw.lstrip("@")   # "jordan"
+                display = raw                # "@jordan" (conserve le @ visuellement)
+                break
+
+            # Cas 2 : text_mention (clic sur un nom sans username public)
+            if ent.type == "text_mention" and ent.user:
+                user_id = ent.user.id
+                username = ent.user.username  # peut être None
+                display = ent.user.full_name or ent.user.first_name
+                break
+
+    # 4) Si aucune entité structurée, on retombe sur le pseudo texte libre
+    if not display:
+        if not raw_pseudo:
+            await update.message.reply_text("Indique un nom avant la date (ex: /add_bday Satya 15-02)")
+            return
+        display = raw_pseudo
+        if not username:
+            username = raw_pseudo  # pour compat / info
 
     chat_id = update.effective_chat.id
-    title = f"Anniv {username}"
+    title = f"Anniv {display}"
 
-    add_event_record(chat_id, "birthday", username, title, day, month, year=None)
+    add_event_record(
+        chat_id=chat_id,
+        type_="birthday",
+        username=username,
+        title=title,
+        day=day,
+        month=month,
+        year=None,
+        user_id=user_id,
+        display=display,
+    )
 
     await update.message.reply_text(
-        f"🎂 Anniversaire de @{username} enregistré le {day:02d}-{month:02d}."
+        f"🎂 Anniversaire de {display} enregistré le {day:02d}-{month:02d}."
     )
 
 async def list_bday(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -347,9 +398,9 @@ async def list_bday(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     lines = []
-    for e in sorted(bdays, key=lambda x: (x["month"], x["day"], (x["username"] or ""))):
-        username = e["username"] or "?"
-        lines.append(f"- {e['day']:02d}-{e['month']:02d} : @{username}")
+    for e in sorted(bdays, key=lambda x: (x["month"], x["day"], (x.get("display") or x.get("username") or ""))):
+        display = e.get("display") or e.get("username") or "?"
+        lines.append(f"- {e['day']:02d}-{e['month']:02d} : {display}")
 
     await update.message.reply_text("🎂 Anniversaires enregistrés :\n" + "\n".join(lines))
 
@@ -357,31 +408,66 @@ async def list_bday(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def add_event(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     /add_event 14-02-2026 Soirée raclette
+    /add_event 14-02-2026 Soirée chez @satya
+    /add_event 14-02-2026 Soirée chez Satya (en cliquant sur son nom)
     """
     if len(context.args) < 2:
         await update.message.reply_text("Usage : /add_event 14-02-2026 Titre de l'événement")
         return
 
+    msg = update.message
     date_str = context.args[0]
     title = " ".join(context.args[1:])
 
+    # 1) Parse de la date
     try:
         d_str, m_str, y_str = date_str.split("-")
         day = int(d_str)
         month = int(m_str)
         year = int(y_str)
-        # validation simple
-        _ = date(year, month, day)
+        _ = date(year, month, day)  # validation simple
     except Exception:
         await update.message.reply_text("Format de date invalide. Utilise JJ-MM-AAAA (ex: 14-02-2026).")
         return
 
+    # 2) Détection éventuelle d'une personne associée (mention / text_mention)
+    user_id = None
+    username = None
+    display = None
+
+    if msg.entities:
+        for ent in msg.entities:
+            if ent.type == "bot_command":
+                continue
+            if ent.type == "mention":
+                raw = msg.text[ent.offset: ent.offset + ent.length]  # ex: "@satya"
+                username = raw.lstrip("@")
+                display = raw
+                break
+            if ent.type == "text_mention" and ent.user:
+                user_id = ent.user.id
+                username = ent.user.username
+                display = ent.user.full_name or ent.user.first_name
+                break
+
     chat_id = update.effective_chat.id
-    add_event_record(chat_id, "event", None, title, day, month, year)
+
+    add_event_record(
+        chat_id=chat_id,
+        type_="event",
+        username=username,
+        title=title,
+        day=day,
+        month=month,
+        year=year,
+        user_id=user_id,
+        display=display,
+    )
 
     await update.message.reply_text(
         f"📅 Événement enregistré le {day:02d}-{month:02d}-{year} : {title}"
     )
+
 
 
 async def list_events(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -444,13 +530,13 @@ async def daily_reminder(context: ContextTypes.DEFAULT_TYPE):
         if delta not in (7, 1):
             continue
 
-        # Message
+               # Message
         if type_ == "birthday":
-            username = e["username"] or "?"
+            display = e.get("display") or e.get("username") or "?"
             if delta == 7:
-                text = f"🎂 J-7 avant l'anniversaire de @{username} ({evt_date.strftime('%d-%m')}) !"
+                text = f"🎂 J-7 avant l'anniversaire de {display} ({evt_date.strftime('%d-%m')}) !"
             else:
-                text = f"🎂 Demain, c'est l'anniversaire de @{username} ({evt_date.strftime('%d-%m')}) !"
+                text = f"🎂 Demain, c'est l'anniversaire de {display} ({evt_date.strftime('%d-%m')}) !"
         else:
             title = e["title"]
             if delta == 7:
