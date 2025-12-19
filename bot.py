@@ -297,36 +297,33 @@ def add_event_record(chat_id, type_, username, title, day, month, year=None):
 
 
 async def add_bday(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    /add_bday @pseudo 15-02
-    """
     if len(context.args) < 2:
         await update.message.reply_text("Usage : /add_bday @pseudo 15-02")
         return
 
-    pseudo = context.args[0]
-    date_raw = context.args[1]
+    # Récupération fiable du @mention
+    username = None
+    if update.message.entities:
+        for ent in update.message.entities:
+            if ent.type == "mention":
+                username = update.message.text[ent.offset+1 : ent.offset+ent.length]
 
-    # Normalisation de la date : on remplace tous les caractères non numériques par des "-",
-    # puis on split proprement. Ça gère les tirets chelous, espaces, etc.
-    clean = re.sub(r"[^\d]", "-", date_raw)  # "15-02" -> "15-02", "15/02" -> "15-02"
+    if not username:
+        await update.message.reply_text("Tagge la personne avec @ (ex: /add_bday @Nom 15-02)")
+        return
+
+    # Dernier argument = date brute
+    date_raw = context.args[-1]
+
+    clean = re.sub(r"[^\d]", "-", date_raw)
     parts = [p for p in clean.split("-") if p]
 
     if len(parts) != 2:
-        await update.message.reply_text("Format de date chelou (debug 123). Utilise JJ-MM (ex: 25-03).")
+        await update.message.reply_text("Format de date invalide. Utilise JJ-MM (ex: 25-03).")
         return
 
-    try:
-        day = int(parts[0])
-        month = int(parts[1])
-    except ValueError:
-        await update.message.reply_text("Format de date chelou (debug 123). Utilise JJ-MM (ex: 25-03).")
-        return
-
-    if pseudo.startswith("@"):
-        username = pseudo[1:]
-    else:
-        username = pseudo
+    day = int(parts[0])
+    month = int(parts[1])
 
     chat_id = update.effective_chat.id
     title = f"Anniv {username}"
@@ -336,7 +333,6 @@ async def add_bday(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         f"🎂 Anniversaire de @{username} enregistré le {day:02d}-{month:02d}."
     )
-
 
 async def list_bday(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Liste les anniversaires du groupe."""
