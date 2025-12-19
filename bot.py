@@ -1,4 +1,5 @@
 import json
+import re
 import os
 import time
 from datetime import datetime, date, time as dtime
@@ -297,27 +298,35 @@ def add_event_record(chat_id, type_, username, title, day, month, year=None):
 
 async def add_bday(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    /add_bday @pseudo 25-03
+    /add_bday @pseudo 15-02
     """
     if len(context.args) < 2:
-        await update.message.reply_text("Usage : /add_bday @pseudo 25-03")
+        await update.message.reply_text("Usage : /add_bday @pseudo 15-02")
         return
 
     pseudo = context.args[0]
-    date_str = context.args[1]
+    date_raw = context.args[1]
+
+    # Normalisation de la date : on remplace tous les caractères non numériques par des "-",
+    # puis on split proprement. Ça gère les tirets chelous, espaces, etc.
+    clean = re.sub(r"[^\d]", "-", date_raw)  # "15-02" -> "15-02", "15/02" -> "15-02"
+    parts = [p for p in clean.split("-") if p]
+
+    if len(parts) != 2:
+        await update.message.reply_text("Format de date invalide. Utilise JJ-MM (ex: 25-03).")
+        return
+
+    try:
+        day = int(parts[0])
+        month = int(parts[1])
+    except ValueError:
+        await update.message.reply_text("Format de date invalide. Utilise JJ-MM (ex: 25-03).")
+        return
 
     if pseudo.startswith("@"):
         username = pseudo[1:]
     else:
         username = pseudo
-
-    try:
-        day_str, month_str = date_str.split("-")
-        day = int(day_str)
-        month = int(month_str)
-    except ValueError:
-        await update.message.reply_text("Format de date invalide. Utilise JJ-MM (ex: 25-03).")
-        return
 
     chat_id = update.effective_chat.id
     title = f"Anniv {username}"
