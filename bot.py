@@ -600,7 +600,7 @@ async def daily_reminder(context: ContextTypes.DEFAULT_TYPE):
 # START / HELP
 # =========================
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Hello 👋\n\n"
         "Je gère :\n"
@@ -628,7 +628,7 @@ def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     # Commandes générales
-    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("help", help))
 
     # Drunk mode
     app.add_handler(CommandHandler("drunk_on", drunk_on))
