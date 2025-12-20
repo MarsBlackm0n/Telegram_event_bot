@@ -298,6 +298,7 @@ MAGIC_8BALL_ANSWERS = [
     "Si tu dois hésiter autant, c’est non.",
     "Si ça te fait rire rien qu’en y pensant, fais-le.",
     "Si ça t’angoisse rien qu’en y pensant, évite."
+    "T'as cru que j'étais ta mère pour décider pour toi ?"
 ]
 
 
