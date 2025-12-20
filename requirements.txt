@@ -1,2 +1,2 @@
 python-telegram-bot[job-queue]>=21.0
-mistralai
+mistralai==0.4.2
