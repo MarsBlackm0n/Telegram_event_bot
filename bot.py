@@ -2,6 +2,7 @@ import json
 import re
 import os
 import time
+import random
 from datetime import datetime, date, time as dtime
 from zoneinfo import ZoneInfo
 
@@ -275,6 +276,50 @@ async def drunk_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         await query.edit_message_text("✅ Message envoyé dans le groupe.")
+
+
+# =========================
+# MAGIC 8-BALL
+# =========================
+
+MAGIC_8BALL_ANSWERS = [
+    "Oui, clairement. ✅",
+    "Non, laisse tomber. ❌",
+    "Probablement oui.",
+    "Probablement pas.",
+    "Mmmmm… j’hésite, repose la question plus tard.",
+    "Je ne suis pas sûr, mais ça sent bon. ✨",
+    "Je ne suis pas sûr, mais ça sent le plan foireux. 🤔",
+    "Les astres sont alignés. 🌙",
+    "C’est un grand oui, fonce. 🚀",
+    "C’est un non poli. 🫠",
+    "Demande plutôt un verre d'abord.",
+    "Tu connais déjà la réponse.",
+    "Si tu dois hésiter autant, c’est non.",
+    "Si ça te fait rire rien qu’en y pensant, fais-le.",
+    "Si ça t’angoisse rien qu’en y pensant, évite."
+]
+
+
+async def magic_8ball(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    /8ball Est-ce qu’on fait une raclette ce soir ?
+    """
+    if context.args:
+        question = " ".join(context.args)
+    else:
+        question = None
+
+    answer = random.choice(MAGIC_8BALL_ANSWERS)
+
+    if question:
+        await update.message.reply_text(
+            f"❓ {question}\n\n🎱 {answer}"
+        )
+    else:
+        await update.message.reply_text(
+            f"🎱 {answer}"
+        )
 
 
 # =========================
@@ -569,6 +614,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "- /list_bday\n"
         "- /add_event 14-02-2026 Soirée raclette\n"
         "- /list_events\n"
+        "- /8ball Ta question existentielle\n"
     )
 
 
@@ -588,6 +634,9 @@ def main():
     app.add_handler(CommandHandler("drunk_on", drunk_on))
     app.add_handler(CommandHandler("drunk_off", drunk_off))
     app.add_handler(CommandHandler("drunk_status", drunk_status))
+
+    # 8-Ball
+    app.add_handler(CommandHandler("8ball", magic_8ball))
 
     # Anniversaires & events
     app.add_handler(CommandHandler("add_bday", add_bday))
