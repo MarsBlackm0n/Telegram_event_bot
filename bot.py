@@ -5,6 +5,7 @@ import time
 import random
 from datetime import datetime, date, time as dtime
 from zoneinfo import ZoneInfo
+from mistralai.client import MistralClient
 
 from telegram import (
     Update,
@@ -27,6 +28,8 @@ from telegram.ext import (
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 DATA_FILE = "bot_data.json"
 TZ = ZoneInfo("Europe/Paris")
+mistral = MistralClient(api_key=os.environ["MISTRAL_API_KEY"])
+
 
 # =========================
 # STOCKAGE SIMPLE (JSON)
@@ -74,6 +77,38 @@ def save_data():
 DRUNK_USERS = {}
 # key: (chat_id, user_id) -> {"text": "..."}
 PENDING_MESSAGES = {}
+
+# =========================
+# MISTRAL
+# =========================
+
+async def ask_mistral(prompt: str) -> str:
+    completion = mistral.chat(
+        model="mistral-small-latest",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.9,
+        max_tokens=60,
+    )
+    return completion.choices[0].message["content"]
+
+
+async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.args:
+        await update.message.reply_text("Pose une question : /oracle Dois-je sortir ce soir ?")
+        return
+
+    question = " ".join(context.args)
+
+    # prompt de base
+    base_prompt = f"""
+Tu es un oracle insolent qui répond en UNE phrase marrante.
+Question: {question}
+"""
+
+    answer = await ask_mistral(base_prompt)
+
+    await update.message.reply_text(f"❓ {question}\n🔮 {answer}")
+
 
 
 # =========================
@@ -630,6 +665,10 @@ def main():
 
     # Commandes générales
     app.add_handler(CommandHandler("help", help))
+
+    # Mistral
+    app.add_handler(CommandHandler("ask", ask))
+
 
     # Drunk mode
     app.add_handler(CommandHandler("drunk_on", drunk_on))
