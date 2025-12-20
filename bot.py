@@ -102,7 +102,7 @@ async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # prompt de base
     base_prompt = f"""
-Tu es un trader cocaïné qui répond en UNE phrase marrante.
+Tu fais une réponse très sérieuse en UNE phrase.
 Question: {question}
 """
 
