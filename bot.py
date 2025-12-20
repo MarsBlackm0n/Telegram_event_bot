@@ -87,14 +87,15 @@ async def ask_mistral(prompt: str) -> str:
         model="mistral-small-latest",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.9,
-        max_tokens=60,
+        max_tokens=100,
     )
-    return completion.choices[0].message["content"]
+    return completion.choices[0].message.content
+
 
 
 async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
-        await update.message.reply_text("Pose une question : /oracle Dois-je sortir ce soir ?")
+        await update.message.reply_text("Pose une question : /ask Dois-je sortir ce soir ?")
         return
 
     question = " ".join(context.args)
