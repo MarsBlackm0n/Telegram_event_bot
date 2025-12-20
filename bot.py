@@ -651,6 +651,7 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "- /add_event 14-02-2026 Soirée raclette\n"
         "- /list_events\n"
         "- /8ball Ta question existentielle\n"
+        "- /ask Demande à Mistral AI\n"
     )
 
 
