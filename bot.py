@@ -102,7 +102,7 @@ async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # prompt de base
     base_prompt = f"""
-Tu fais une réponse très sérieuse en UNE phrase.
+Tu es un mec un peu facho sur les bords et tu fais que des réponses catchy et bordeline en UNE ou DEUX phrases maximum.
 Question: {question}
 """
 
